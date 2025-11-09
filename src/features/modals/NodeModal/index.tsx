@@ -4,7 +4,8 @@ import { Modal, Stack, Text, ScrollArea, Flex, CloseButton } from "@mantine/core
 import { CodeHighlight } from "@mantine/code-highlight";
 import type { NodeData } from "../../../types/graph";
 import useGraph from "../../editor/views/GraphView/stores/useGraph";
-import useJson from "../../../store/useJson"; // <-- fixed import
+import useJson from "../../../store/useJson"; // <-- existing json store
+import useFile from "../../../store/useFile"; // <-- added file store
 
 // return object from json removing array and object fields
 const normalizeNodeData = (nodeRows: NodeData["text"]) => {
@@ -38,6 +39,9 @@ export const NodeModal = ({ opened, onClose }: ModalProps) => {
   const getJson = useJson(state => state.getJson);
   const setJson = useJson(state => state.setJson);
 
+  // useFile setContents updates the left-side editor
+  const setContents = useFile(state => state.setContents);
+
   // component-local editing state
   const [isEditing, setIsEditing] = useState(false);
   const [tempValue, setTempValue] = useState<string>(() => normalizeNodeData(nodeData?.text ?? []));
@@ -56,7 +60,9 @@ export const NodeModal = ({ opened, onClose }: ModalProps) => {
 
       // If no node path, replace the root JSON
       if (!nodeData?.path || nodeData.path.length === 0) {
-        setJson(JSON.stringify(parsed, null, 2));
+        const formatted = JSON.stringify(parsed, null, 2);
+        setJson(formatted);
+        setContents({ contents: formatted });
       } else {
         // Merge into the current global JSON at the node path
         const currentJsonStr = getJson();
@@ -65,7 +71,9 @@ export const NodeModal = ({ opened, onClose }: ModalProps) => {
           current = JSON.parse(currentJsonStr);
         } catch {
           // If current global JSON is invalid, replace it with the edited value
-          setJson(JSON.stringify(parsed, null, 2));
+          const formatted = JSON.stringify(parsed, null, 2);
+          setJson(formatted);
+          setContents({ contents: formatted });
           setIsEditing(false);
           setParseError(null);
           return;
@@ -94,7 +102,9 @@ export const NodeModal = ({ opened, onClose }: ModalProps) => {
           }
         }
 
-        setJson(JSON.stringify(current, null, 2));
+        const formatted = JSON.stringify(current, null, 2);
+        setJson(formatted);
+        setContents({ contents: formatted });
       }
 
       setIsEditing(false);
